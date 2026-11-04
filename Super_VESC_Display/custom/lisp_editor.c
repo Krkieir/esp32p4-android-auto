@@ -171,7 +171,11 @@ static void save_file(void)
         if (l + 5 < sizeof fname) strcat(fname, ".lisp");
     }
 
+#ifdef _WIN32
+    mkdir(LISP_DIR);
+#else
     mkdir(LISP_DIR, 0775);   /* ok if it already exists */
+#endif
     char path[160];
     snprintf(path, sizeof path, "%s/%s", LISP_DIR, fname);
 

@@ -51,6 +51,11 @@ CSRCS += $(notdir $(wildcard $(VC_DIR)/generated/*.c))
 DEPPATH += --dep-path $(VC_DIR) --dep-path $(VC_DIR)/generated
 VPATH += :$(VC_DIR):$(VC_DIR)/generated
 
+# Media widget and font from main/
+CSRCS += music_info_view.c aabridge_font_24.c
+DEPPATH += --dep-path $(FW_ROOT)/main --dep-path $(FW_ROOT)/main/fonts
+VPATH += :$(FW_ROOT)/main:$(FW_ROOT)/main/fonts
+
 # buffer.c is the VESC wire (de)serializer the config serdes is built on —
 # pure C, so the host uses the firmware's own copy.
 VESC_CAN_DIR := $(FW_ROOT)/components/vesc_can

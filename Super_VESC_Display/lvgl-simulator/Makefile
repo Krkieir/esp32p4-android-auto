@@ -13,12 +13,18 @@ LVGL_DIR_NAME ?= lvgl
 CFLAGS := -O3 -g0 -I$(LVGL_DIR)/ -I$(makefile_path)/ -I$(makefile_path)/rlottie -c -fmessage-length=0
 CFLAGS += -I$(LVGL_DIR)/$(LVGL_DIR_NAME)/ -I$(LVGL_DIR)/$(LVGL_DIR_NAME)/src
 
+ifneq ($(OS),Windows_NT)
 UNAME_S := $(shell uname -s)
+endif
 
 ifeq ($(OS),Windows_NT)
+ifeq ($(LV_USE_FREEMASTER),1)
 -include $(SIMULATOR_DIR)/gg_external_data/freemaster/freemaster.mk
 -include $(SIMULATOR_DIR)/gg_external_data/gg_external_data.mk
-LDFLAGS := -lSDL2 -L$(libfile_path) -ldecoder -lopenh264 -lrlottie -lpthread -lstdc++ -ljansson -lcurl -lm
+LDFLAGS := -lSDL2 -L$(SIMULATOR_DIR)/SDL2/i686-w64-mingw32/lib -lpthread -lstdc++ -ljansson -lcurl -lm
+else
+LDFLAGS := -lSDL2 -L$(SIMULATOR_DIR)/SDL2/i686-w64-mingw32/lib -lpthread -lstdc++ -lm
+endif
 else ifeq ($(UNAME_S),Darwin)
 BREW_PREFIX := $(shell brew --prefix 2>/dev/null)
 ifeq ($(BREW_PREFIX),)
@@ -177,14 +183,14 @@ SHOT ?= all
 SHOT_LV_MEM ?= 8388608
 
 shots:
-	@$(MAKE) -f $(makefile_name) BUILD_DIR=buildshot/ \
+	@"$(MAKE)" -f $(makefile_name) BUILD_DIR=buildshot/ \
 	    EXTRA_CFLAGS='-DLV_USE_SNAPSHOT=1 -DLV_MEM_SIZE=$(SHOT_LV_MEM)'
 	@mkdir -p $(BUILD_DIR)shots
 	@SDL_VIDEODRIVER=dummy SVD_SHOT='$(SHOT)' \
 	    SVD_SHOT_DIR=$(BUILD_DIR)shots ./buildshot/bin/$(SIMULATOR_EXE)
 
 shots480:
-	@$(MAKE) -f $(makefile_name) \
+	@"$(MAKE)" -f $(makefile_name) \
 	    SCREENS_DIR=$(PRJ_DIR)/../Super_VESC_Display_480 \
 	    BUILD_DIR=buildshot480/ \
 	    EXTRA_CFLAGS='-DLV_HOR_RES_MAX=480 -DLV_VER_RES_MAX=480 -DLV_USE_SNAPSHOT=1 -DLV_MEM_SIZE=$(SHOT_LV_MEM)'
@@ -205,14 +211,14 @@ shots480:
 RUN ?= tour
 
 menus:
-	@$(MAKE) -f $(makefile_name) SIM_SHIM=1 BUILD_DIR=buildmenu/ \
+	@"$(MAKE)" -f $(makefile_name) SIM_SHIM=1 BUILD_DIR=buildmenu/ \
 	    EXTRA_CFLAGS='-DLV_USE_SNAPSHOT=1 -DLV_MEM_SIZE=$(SHOT_LV_MEM)'
 	@mkdir -p buildmenu/shots
 	@SDL_VIDEODRIVER=dummy SVD_RUN='$(RUN)' \
 	    SVD_SHOT_DIR=buildmenu/shots ./buildmenu/bin/$(SIMULATOR_EXE)
 
 menus480:
-	@$(MAKE) -f $(makefile_name) SIM_SHIM=1 \
+	@"$(MAKE)" -f $(makefile_name) SIM_SHIM=1 \
 	    SCREENS_DIR=$(PRJ_DIR)/../Super_VESC_Display_480 \
 	    BUILD_DIR=buildmenu480/ \
 	    EXTRA_CFLAGS='-DLV_HOR_RES_MAX=480 -DLV_VER_RES_MAX=480 -DLV_USE_SNAPSHOT=1 -DLV_MEM_SIZE=$(SHOT_LV_MEM)'
@@ -222,9 +228,12 @@ menus480:
 
 # Windowed simulator with the device screens available (same shim as `menus`),
 # for clicking through them by hand:
-#   make sim480 && ./buildsim480/bin/simulator
+#   make sim && ./build/bin/simulator.exe
+sim:
+	@"$(MAKE)" -f $(makefile_name) SIM_SHIM=1
+
 sim480:
-	@$(MAKE) -f $(makefile_name) SIM_SHIM=1 \
+	@"$(MAKE)" -f $(makefile_name) SIM_SHIM=1 \
 	    SCREENS_DIR=$(PRJ_DIR)/../Super_VESC_Display_480 \
 	    BUILD_DIR=buildsim480/ \
 	    EXTRA_CFLAGS='-DLV_HOR_RES_MAX=480 -DLV_VER_RES_MAX=480'
@@ -234,7 +243,7 @@ sim480:
 # so the two geometries don't overwrite each other's objects.
 #   make dash480 && ./build480/bin/simulator
 dash480:
-	@$(MAKE) -f $(makefile_name) \
+	@"$(MAKE)" -f $(makefile_name) \
 	    SCREENS_DIR=$(PRJ_DIR)/../Super_VESC_Display_480 \
 	    BUILD_DIR=build480/ \
 	    EXTRA_CFLAGS='-DLV_HOR_RES_MAX=480 -DLV_VER_RES_MAX=480'
@@ -266,12 +275,13 @@ ifeq ($(OS),Windows_NT)
 endif
 
 cp_lib:
-	-@cp SDL2/lib/SDL2.dll build/bin/SDL2.dll $(NORMAL_OUT)>$(NULL_OUT)
-	-@cp multi_thread/libgcc_s_dw2-1.dll build/bin/libgcc_s_dw2-1.dll $(NORMAL_OUT)>$(NULL_OUT)
-	-@cp multi_thread/pthreadGC-3.dll build/bin/pthreadGC-3.dll $(NORMAL_OUT)>$(NULL_OUT)
-	-@cp multi_thread/libjansson-4.dll build/bin/libjansson-4.dll $(NORMAL_OUT)>$(NULL_OUT)
-	-@cp multi_thread/libcurl.dll build/bin/libcurl.dll $(NORMAL_OUT)>$(NULL_OUT)
-	-@cp SDL2/lib/libopenh264.dll build/bin/libopenh264.dll $(NORMAL_OUT)>$(NULL_OUT)
+ifeq ($(OS),Windows_NT)
+	-@cmd /c copy /y "SDL2\lib\SDL2.dll" "$(subst /,\,$(BIN_DIR))SDL2.dll" $(NORMAL_OUT)>$(NULL_OUT)
+	-@cmd /c copy /y "multi_thread\libgcc_s_dw2-1.dll" "$(subst /,\,$(BIN_DIR))libgcc_s_dw2-1.dll" $(NORMAL_OUT)>$(NULL_OUT)
+	-@cmd /c copy /y "multi_thread\pthreadGC-3.dll" "$(subst /,\,$(BIN_DIR))pthreadGC-3.dll" $(NORMAL_OUT)>$(NULL_OUT)
+else
+	-@cp SDL2/lib/SDL2.dll $(BIN_DIR)SDL2.dll $(NORMAL_OUT)>$(NULL_OUT)
+endif
 
 clean:
 	-@$(RMDIR) build

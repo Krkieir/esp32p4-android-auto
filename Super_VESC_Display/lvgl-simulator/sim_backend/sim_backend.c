@@ -614,3 +614,186 @@ vc_result_t vct_request_raw(uint8_t cmd, const uint8_t *body, unsigned int body_
     sim_later(vct_finish_raw, j, 900);
     return VC_OK;
 }
+
+
+/* ------------------------------------------------------------- img_jpeg & notif_bridge shim */
+#include "notif_bridge.h"
+#include "music_info_view.h"
+
+esp_err_t img_jpeg_init(void) { return ESP_OK; }
+uint8_t *img_jpeg_alloc_rgb565(size_t bytes) { return (uint8_t *)calloc(1, bytes); }
+
+typedef struct {
+    const char *title;
+    const char *artist;
+    const char *album;
+    const char *pkg;
+    uint32_t    hash;
+    uint16_t    art_w;
+    uint16_t    art_h;
+    uint16_t    color_start;
+    uint16_t    color_end;
+    bool        is_video;
+} sim_mock_track_t;
+
+static const sim_mock_track_t s_mock_tracks[] = {
+    {
+        .title = "Bohemian Rhapsody",
+        .artist = "Queen",
+        .album = "A Night at the Opera",
+        .pkg = "com.spotify.music",
+        .hash = 0x1111,
+        .art_w = 128,
+        .art_h = 128,
+        .color_start = 0x780F,
+        .color_end   = 0x021F,
+        .is_video = false,
+    },
+    {
+        .title = "Blinding Lights",
+        .artist = "The Weeknd",
+        .album = "After Hours",
+        .pkg = "ru.yandex.music",
+        .hash = 0x2222,
+        .art_w = 128,
+        .art_h = 128,
+        .color_start = 0xF800,
+        .color_end   = 0x4008,
+        .is_video = false,
+    },
+    {
+        .title = "Rick Astley - Never Gonna Give You Up",
+        .artist = "Rick Astley - YouTube 16:9",
+        .album = "YouTube Video",
+        .pkg = "com.google.android.youtube",
+        .hash = 0x3333,
+        .art_w = 352,
+        .art_h = 144,
+        .color_start = 0xFA60,
+        .color_end   = 0x2885,
+        .is_video = true,
+    },
+    {
+        .title = "Radio Record",
+        .artist = "Live Broadcast - No Art",
+        .album = "EDM FM",
+        .pkg = "com.radio.record",
+        .hash = 0,
+        .art_w = 0,
+        .art_h = 0,
+        .is_video = false,
+    },
+};
+
+#define NUM_MOCK_TRACKS (sizeof(s_mock_tracks) / sizeof(s_mock_tracks[0]))
+static int s_mock_track_idx = 0;
+static media_state_t s_sim_media;
+
+bool img_jpeg_decode_rgb565(const uint8_t *src, size_t len,
+                            uint8_t *dst, size_t dst_cap,
+                            uint16_t *out_w, uint16_t *out_h)
+{
+    (void)src; (void)len;
+    const sim_mock_track_t *t = &s_mock_tracks[s_mock_track_idx];
+    uint16_t w = t->art_w ? t->art_w : 136;
+    uint16_t h = t->art_h ? t->art_h : 136;
+    if ((size_t)w * h * 2 > dst_cap) return false;
+
+    uint16_t *pix = (uint16_t *)dst;
+    uint16_t c1 = t->color_start;
+    uint16_t c2 = t->color_end;
+    for (uint16_t y = 0; y < h; y++) {
+        for (uint16_t x = 0; x < w; x++) {
+            int factor = (x * 256 / w + y * 256 / h) / 2;
+            int r1 = (c1 >> 11) & 0x1F, g1 = (c1 >> 5) & 0x3F, b1 = c1 & 0x1F;
+            int r2 = (c2 >> 11) & 0x1F, g2 = (c2 >> 5) & 0x3F, b2 = c2 & 0x1F;
+            int r = r1 + ((r2 - r1) * factor) / 256;
+            int g = g1 + ((g2 - g1) * factor) / 256;
+            int b = b1 + ((b2 - b1) * factor) / 256;
+            pix[y * w + x] = (uint16_t)((r << 11) | (g << 5) | b);
+        }
+    }
+    if (out_w) *out_w = w;
+    if (out_h) *out_h = h;
+    return true;
+}
+
+static void sim_load_mock_track(int idx)
+{
+    if (idx < 0 || idx >= (int)NUM_MOCK_TRACKS) idx = 0;
+    s_mock_track_idx = idx;
+    const sim_mock_track_t *t = &s_mock_tracks[idx];
+    strncpy(s_sim_media.title, t->title, sizeof(s_sim_media.title) - 1);
+    strncpy(s_sim_media.artist, t->artist, sizeof(s_sim_media.artist) - 1);
+    strncpy(s_sim_media.album, t->album, sizeof(s_sim_media.album) - 1);
+    strncpy(s_sim_media.source_app, t->pkg ? t->pkg : "", sizeof(s_sim_media.source_app) - 1);
+    s_sim_media.is_playing = true;
+    s_sim_media.album_art_hash = t->hash;
+}
+
+const media_state_t *notif_bridge_get_media(void)
+{
+    return &s_sim_media;
+}
+
+static uint32_t s_mock_dummy_hash;
+const uint8_t *notif_bridge_get_icon(uint32_t hash, size_t *len)
+{
+    if (!hash) {
+        if (len) *len = 0;
+        return NULL;
+    }
+    s_mock_dummy_hash = hash;
+    if (len) *len = sizeof(s_mock_dummy_hash);
+    return (const uint8_t *)&s_mock_dummy_hash;
+}
+
+void notif_bridge_send_cmd(notif_op_t op, uint32_t arg)
+{
+    (void)arg;
+    switch (op) {
+    case NOTIF_OP_PLAY:
+        s_sim_media.is_playing = true;
+        printf("[SIM] Media PLAY clicked\n");
+        break;
+    case NOTIF_OP_PAUSE:
+        s_sim_media.is_playing = false;
+        printf("[SIM] Media PAUSE clicked\n");
+        break;
+    case NOTIF_OP_NEXT:
+        s_mock_track_idx = (s_mock_track_idx + 1) % (int)NUM_MOCK_TRACKS;
+        sim_load_mock_track(s_mock_track_idx);
+        printf("[SIM] Media NEXT clicked -> Track %d: \"%s\" (video=%d)\n",
+               s_mock_track_idx, s_sim_media.title, s_mock_tracks[s_mock_track_idx].is_video);
+        break;
+    case NOTIF_OP_PREV:
+        s_mock_track_idx = (s_mock_track_idx + (int)NUM_MOCK_TRACKS - 1) % (int)NUM_MOCK_TRACKS;
+        sim_load_mock_track(s_mock_track_idx);
+        printf("[SIM] Media PREV clicked -> Track %d: \"%s\" (video=%d)\n",
+               s_mock_track_idx, s_sim_media.title, s_mock_tracks[s_mock_track_idx].is_video);
+        break;
+    default:
+        break;
+    }
+}
+
+uint32_t notif_bridge_inbox_seq(void) { return 0; }
+size_t notif_bridge_recent(notif_msg_t *out, size_t max) { (void)out; (void)max; return 0; }
+
+static void sim_theme_switch_cb(lv_obj_t *screen, lv_obj_t *music_tile)
+{
+    (void)screen;
+    music_info_view_detach();
+    if (music_tile) {
+        music_info_view_attach(music_tile);
+    }
+}
+
+void sim_media_init(void)
+{
+    sim_load_mock_track(0);
+    dashboard_theme_set_switch_cb(sim_theme_switch_cb);
+    if (guider_ui.dashboard_Classic_music_info_tile) {
+        music_info_view_attach(guider_ui.dashboard_Classic_music_info_tile);
+    }
+}

@@ -9,6 +9,23 @@ changes.
 Entries below name the firmware version; the app version of the same release is
 the one recorded in the release commit.
 
+## v1.3.37 / app 0.3.47 — 2026-11-05
+
+### Adaptive Media Widget & Player Controls
+
+- **Interactive transport controls**: added Previous, Play/Pause toggle with signature lime accent border, and Next capsule buttons for music playback.
+- **Adaptive layout**:
+  - **Music mode (1:1)**: Album art card on the left inside a rounded square (s_art_box), perfectly centered with cover zoom (max(zw, zh)). Title, scrolling artist, and transport controls on the right. Dark #000808 background blending seamlessly into the dashboard.
+  - **Video mode (16:9, e.g. YouTube)**: Full-bleed preview background covering the tile with dark readability overlay, full-width labels at the bottom, and transport buttons hidden.
+- **Android Media Bridge (MediaListener.kt)**:
+  - Support artwork extraction via ContentResolver for media players that supply content URIs instead of direct bitmaps (e.g. YouTube).
+  - Intelligent letterbox detection: detects 16:9 thumbnails padded with black bars into 1:1 squares and crops them to native 16:9 (352×144).
+  - Strict 16-pixel alignment (128×128 for music, 352×144 for video) eliminating hardware JPEG decoder padding artifacts on ESP32-P4.
+- **VESC Config UI**:
+  - Clamped dropdown lists to prevent overflowing off-screen or covering the bottom button row (Read, Write, etc.), flipping upwards when space below is insufficient.
+- **LVGL Simulator**:
+  - Desktop simulator support with mock tracks (1:1 music, 16:9 video, no-art fallback) to verify media layouts.
+
 ## v1.3.36 / app 0.3.45 — 2026-11-03
 
 ### The odometer stops forgetting the end of the ride

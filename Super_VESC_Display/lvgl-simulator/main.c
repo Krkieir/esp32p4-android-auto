@@ -96,6 +96,10 @@ int main(int argc, char ** argv)
     /*Create a GUI-Guider app */
     setup_ui(&guider_ui);
     custom_init(&guider_ui);
+#if LV_SIMSHIM
+    extern void sim_media_init(void);
+    sim_media_init();
+#endif
 
     /* Headless driver: screenshots, synthetic touch and a layout audit, with
      * no window and no display (SDL's dummy video driver). Usable over ssh, in

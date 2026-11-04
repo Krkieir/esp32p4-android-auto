@@ -785,6 +785,22 @@ static void run_line(char *line)
         }
     } else if (strcmp(cmd, "tour") == 0) {
         tour();
+    } else if (strcmp(cmd, "next") == 0) {
+        extern void notif_bridge_send_cmd(int op, unsigned int arg);
+        notif_bridge_send_cmd(0x12, 0);
+        settle(450);
+    } else if (strcmp(cmd, "prev") == 0) {
+        extern void notif_bridge_send_cmd(int op, unsigned int arg);
+        notif_bridge_send_cmd(0x13, 0);
+        settle(450);
+    } else if (strcmp(cmd, "play") == 0) {
+        extern void notif_bridge_send_cmd(int op, unsigned int arg);
+        notif_bridge_send_cmd(0x10, 0);
+        settle(450);
+    } else if (strcmp(cmd, "pause") == 0) {
+        extern void notif_bridge_send_cmd(int op, unsigned int arg);
+        notif_bridge_send_cmd(0x11, 0);
+        settle(450);
     } else {
         fprintf(stderr, "drive: unknown command \"%s\"\n", cmd);
         s_failures++;

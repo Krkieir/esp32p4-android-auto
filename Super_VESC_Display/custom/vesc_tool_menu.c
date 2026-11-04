@@ -146,6 +146,84 @@ static void style_btn(lv_obj_t *btn, uint32_t bg)
     lv_obj_set_style_border_width(btn, 0, 0);
 }
 
+static void clamp_dropdown_async(void *user_data)
+{
+    lv_obj_t *dd = (lv_obj_t *)user_data;
+    if (!dd || !s_alive) return;
+    lv_obj_t *list = lv_dropdown_get_list(dd);
+    if (!list || lv_obj_has_flag(list, LV_OBJ_FLAG_HIDDEN)) return;
+
+    lv_obj_update_layout(list);
+
+    const bool narrow = (UI_W < 700);
+    const lv_coord_t margin = 8;
+    const lv_coord_t max_x2 = UI_W - margin;
+    const lv_coord_t min_x1 = margin;
+    const lv_coord_t max_y2 = narrow ? (UI_H - 106) : (UI_H - 68);
+    const lv_coord_t min_y1 = margin;
+
+    lv_coord_t w = lv_obj_get_width(list);
+    lv_coord_t h = lv_obj_get_height(list);
+
+    /* 1. Horizontal clamping: prevent hanging off the right edge */
+    if (w > UI_W - 2 * margin) {
+        w = UI_W - 2 * margin;
+        lv_obj_set_width(list, w);
+    }
+
+    lv_coord_t x = lv_obj_get_x(list);
+    if (x + w > max_x2) {
+        x = max_x2 - w;
+    }
+    if (x < min_x1) {
+        x = min_x1;
+    }
+    lv_obj_set_x(list, x);
+
+    /* 2. Vertical direction & clamping: prevent overflowing bottom/top */
+    lv_area_t dd_coords;
+    lv_obj_get_coords(dd, &dd_coords);
+
+    lv_coord_t space_below = max_y2 - dd_coords.y2 - 2;
+    lv_coord_t space_above = dd_coords.y1 - min_y1 - 2;
+
+    lv_coord_t y = lv_obj_get_y(list);
+
+    if (y >= dd_coords.y1) {
+        /* Currently below dd */
+        if (y + h > max_y2 && space_above > space_below) {
+            /* Flip upwards */
+            if (h > space_above) {
+                h = space_above;
+                lv_obj_set_height(list, h);
+            }
+            y = dd_coords.y1 - h - 2;
+        } else if (y + h > max_y2) {
+            /* Keep below, but clamp height */
+            h = max_y2 - y;
+            if (h < 60) h = 60;
+            lv_obj_set_height(list, h);
+        }
+    } else {
+        /* Currently above dd */
+        if (y < min_y1) {
+            y = min_y1;
+            if (y + h > dd_coords.y1 - 2) {
+                h = dd_coords.y1 - 2 - y;
+                if (h < 60) h = 60;
+                lv_obj_set_height(list, h);
+            }
+        }
+    }
+    lv_obj_set_y(list, y);
+}
+
+static void dd_click_cb(lv_event_t *e)
+{
+    lv_obj_t *dd = lv_event_get_target(e);
+    lv_async_call(clamp_dropdown_async, dd);
+}
+
 static void style_dropdown(lv_obj_t *dd)
 {
     lv_obj_set_style_bg_color(dd, lv_color_hex(COL_BTN), 0);
@@ -153,12 +231,14 @@ static void style_dropdown(lv_obj_t *dd)
     lv_obj_set_style_text_font(dd, &lv_font_montserratMedium_16, 0);
     lv_obj_set_style_radius(dd, 6, 0);
     lv_obj_set_style_border_width(dd, 0, 0);
+    lv_obj_add_event_cb(dd, dd_click_cb, LV_EVENT_CLICKED, NULL);
+
     lv_obj_t *list = lv_dropdown_get_list(dd);
     if (list) {
         lv_obj_set_style_bg_color(list, lv_color_hex(COL_PANEL), 0);
         lv_obj_set_style_text_color(list, lv_color_hex(COL_TEXT), 0);
         lv_obj_set_style_text_font(list, &lv_font_montserratMedium_16, 0);
-        lv_obj_set_style_max_height(list, 360, 0);
+        lv_obj_set_style_max_height(list, 240, 0);
     }
 }
 
@@ -1407,7 +1487,7 @@ static void vt_build_screen(void)
     s_list = lv_obj_create(s_screen);
     const lv_coord_t list_y = narrow ? 152 : 104;
     lv_obj_set_pos(s_list, 8, list_y);
-    lv_obj_set_size(s_list, UI_W - 16, UI_H - list_y - (narrow ? 108 : 176));
+    lv_obj_set_size(s_list, UI_W - 16, UI_H - list_y - (narrow ? 108 : 72));
     lv_obj_set_style_bg_color(s_list, lv_color_hex(COL_PANEL), 0);
     lv_obj_set_style_border_width(s_list, 0, 0);
     lv_obj_set_style_radius(s_list, 6, 0);
