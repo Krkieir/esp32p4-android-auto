@@ -25,6 +25,10 @@
  *   screen <name>     load a dashboard theme by name, or "settings"
  *   menu <id>         open a code-built screen: trips, vesc, pas, speed,
  *                     lisp, lispedit, rt
+ *   set <field> <v>   feed telemetry: speed, current, voltage, battery, ah,
+ *                     trip, range, odo, temp_fet, temp_motor, mode, cruise,
+ *                     clock, esc, bt, music ("Title | Artist"); "set cruise_off"
+ *                     clears the CC badge
  *   tap <x> <y>       tap at a pixel
  *   tap "<text>"      tap the centre of the widget showing that text
  *   swipe <x1> <y1> <x2> <y2> [steps]
@@ -662,6 +666,7 @@ static bool open_menu(const char *id)
     else if (strcmp(id, "vesc")     == 0) run_vesc_tool_menu();
     else if (strcmp(id, "pas")      == 0) show_pas_settings();
     else if (strcmp(id, "speed")    == 0) show_speed_settings();
+    else if (strcmp(id, "bms")      == 0) show_bms_settings();
     else if (strcmp(id, "lisp")     == 0) show_lisp_panel();
     else if (strcmp(id, "lispedit") == 0) show_lisp_editor();
     else if (strcmp(id, "rt")       == 0) show_realtime_viewer();
@@ -696,6 +701,7 @@ static void tour(void)
         { "vesc",     "vescconf", 3 },
         { "pas",      "pas",      3 },
         { "speed",    "speed",    2 },
+        { "bms",      "bms",      2 },
         { "lisp",     "lisppanel",1 },
         { "lispedit", "lispedit", 1 },
         { "rt",       "realtime", 1 },
@@ -748,6 +754,41 @@ static bool next_word(char **pp, char *out, size_t cap)
     return n > 0;
 }
 
+/* Feed synthetic telemetry into the active dashboard. The firmware's data pump
+ * is absent here, so `set <field> <value>` is how a scripted screenshot (or a
+ * GIF) gets real-looking numbers instead of the placeholder labels. */
+static void set_field(const char *name, const char *val)
+{
+    float f = (float)atof(val);
+
+    if      (!strcmp(name, "speed"))       update_speed(f);
+    else if (!strcmp(name, "current"))     update_current(f);
+    else if (!strcmp(name, "voltage"))     update_battery_voltage(f);
+    else if (!strcmp(name, "battery"))     update_battery_proc(f);
+    else if (!strcmp(name, "ah"))          update_amp_hours(f);
+    else if (!strcmp(name, "trip"))        update_trip(f);
+    else if (!strcmp(name, "range"))       update_range(f);
+    else if (!strcmp(name, "odo"))         update_odometer(f);
+    else if (!strcmp(name, "temp_fet"))    update_temp_fet(f);
+    else if (!strcmp(name, "temp_motor"))  update_temp_motor(f);
+    else if (!strcmp(name, "mode"))        update_mode_text((uint8_t)atoi(val));
+    else if (!strcmp(name, "cruise")) {
+        update_cruise_control_status(true);
+        update_cruise_speed(f);
+    }
+    else if (!strcmp(name, "music"))       update_music_text(val);
+    else if (!strcmp(name, "esc"))         update_esc_connection_status(atoi(val) != 0);
+    else if (!strcmp(name, "bt"))          update_ble_status(atoi(val) != 0);
+    else if (!strcmp(name, "clock")) {
+        int h = 0, m = 0;
+        if (sscanf(val, "%d:%d", &h, &m) == 2) update_cur_time_hm(h, m);
+    }
+    else {
+        fprintf(stderr, "drive: unknown set field \"%s\"\n", name);
+        s_failures++;
+    }
+}
+
 static void run_line(char *line)
 {
     char cmd[32];
@@ -755,7 +796,7 @@ static void run_line(char *line)
     if (!next_word(&p, cmd, sizeof cmd)) return;
     if (cmd[0] == '#') return;
 
-    char a1[160], a2[32], a3[32], a4[32], a5[32];
+    char a1[160], a2[160], a3[32], a4[32], a5[32];
 
     if (strcmp(cmd, "screen") == 0) {
         if (next_word(&p, a1, sizeof a1) && !load_screen(a1)) s_failures++;
@@ -769,6 +810,16 @@ static void run_line(char *line)
         tree_obj(lv_scr_act(), 0);
     } else if (strcmp(cmd, "wait") == 0) {
         if (next_word(&p, a1, sizeof a1)) settle(atoi(a1));
+    } else if (strcmp(cmd, "set") == 0) {
+        if (!next_word(&p, a1, sizeof a1)) return;
+        if (strcmp(a1, "cruise_off") == 0) {
+            update_cruise_control_status(false);
+        } else if (next_word(&p, a2, sizeof a2)) {
+            set_field(a1, a2);
+        } else {
+            fprintf(stderr, "drive: set %s needs a value\n", a1);
+            s_failures++;
+        }
     } else if (strcmp(cmd, "tap") == 0) {
         if (!next_word(&p, a1, sizeof a1)) return;
         if (isdigit((unsigned char)a1[0]) && next_word(&p, a2, sizeof a2)) {

@@ -9,7 +9,84 @@ changes.
 Entries below name the firmware version; the app version of the same release is
 the one recorded in the release commit.
 
-## v1.3.38 / app 0.3.48 — 2026-11-14
+## v1.3.42 / app 0.3.51 — 2026-11-13
+
+Bug-fix release. Two behaviour fixes on top of 1.3.41; no new screens.
+
+### The Twin Arc white screen (fixed)
+
+- The dashboard could freeze on a white screen — most reliably on **Twin Arc**,
+  right after the boot splash. The media poller (`music_info_view`) hides its
+  "container" whenever no track is playing, a trick written for the GUI-Guider
+  themes whose music tile sits inside a `music_info` container. Twin Arc parents
+  its tile **directly on the screen**, so the poller was hiding the whole
+  dashboard screen; LVGL then drops every invalidation on a hidden object, so
+  nothing repainted and the render watchdog's forced repaint was silently
+  discarded too. The toggle is now skipped when the tile's parent is the screen.
+  Verified on a Waveshare 4.3": Twin Arc holds ~10 fps where it froze at 0 fps.
+
+### Android Auto auto-connect is off by default
+
+- `aa_autoconnect` (Settings → "Reconnect to last phone on power-on") now
+  defaults to **off** on a fresh/erased NVS. Existing saved settings are kept —
+  turn it off on the device, or it stays on, if you enabled it earlier. The
+  manual **Connect** button and the phone-initiated flow are unchanged.
+
+## v1.3.41 / app 0.3.50 — 2026-11-13
+
+Documentation and tooling release; firmware behaviour is unchanged from 1.3.40.
+
+### A screen-by-screen user guide
+
+- [`docs/ui-guide.md`](docs/ui-guide.md) (and
+  [`docs/ui-guide.ru.md`](docs/ui-guide.ru.md)) render every screen the dashboard
+  can show — all four dashboard themes, the JK-BMS pack screen, all four
+  Settings tabs, the odometer dialog, the trip log and its chart, VESC Config,
+  PAS, the speed sensor, Quick actions, the LISP editor, Realtime, the QR codes
+  and the log viewer — straight from the simulator, with what each control
+  does. The pictures are screenshots of the firmware's own screens
+  (`make menus`), not mock-ups.
+- `Super_VESC_Display/custom/lisp_editor.c`: build the LISP editor on Windows
+  hosts too (`_mkdir` instead of the POSIX two-argument `mkdir`), so the
+  simulator's `make menus` works on a MinGW toolchain.
+- `Super_VESC_Display/lvgl-simulator/sim_drive.c`: add `menu bms` so the
+  JK-BMS pack screen can be rendered and audited like the other menus.
+- Every dashboard and Settings screenshot in the guide was regenerated from the
+  current simulator, including Cockpit (Amber), Twin Arc and a connected
+  JK-BMS pack; the Twin Arc section links the refreshed
+  [`twin-arc-demo.gif`](docs/images/ui/twin-arc-demo.gif).
+- Both READMEs now point at 1.3.41 / 0.3.50, mention the four themes and the
+  JK-BMS source, and the hardware-validation warning refers to this release.
+
+## v1.3.40 / app 0.3.49 — 2026-11-13
+
+Since 1.3.36 this release line adds two dashboards and a second battery source.
+
+### Two more dashboards
+
+- **Cockpit (Amber)** — the Cockpit layout in the warm cyberpunk-amber palette,
+  with DSEG7 segment numerals and amber bars on black.
+- **Twin Arc** — two 270° rings for speed and power, battery/remaining Ah/range
+  between them, a phone now-playing card beneath the rings, a green `CC nn`
+  cruise badge in the status bar, and the five-cell telemetry strip. The speed
+  face uses the 120 px DSEG7 subset with the KM/H label clear of the digits.
+- Both are picked live in **Settings → Display** and are compiled for the
+  800×480 boards only.
+
+### JK-BMS over BLE
+
+- **Settings → Bike → Battery Calculation → `JK-BMS (BLE)`** makes a paired
+  Jikong pack the dashboard's SOC, remaining-Ah and range source. The pack
+  screen (also opened by tapping the battery percentage) shows live SOC,
+  pack Ah counters, voltage, current, power, temperatures, cell range, cycles,
+  MOSFET state and model, and pairs a pack with `Search` / `Forget`.
+- While the selected pack is offline or stale, the dashboard reads **N/A**
+  instead of falling back to the controller. The Ah field always means
+  **remaining capacity** — the pack's own counter in BMS mode, the Smart
+  tracker's remaining Ah, or the controller percentage applied to the
+  configured capacity.
+
+## [Fork] v1.3.38 / app 0.3.48 — 2026-11-14
 
 ### Media Widget in Cockpit Max & Adaptive Scaling
 
@@ -23,7 +100,7 @@ the one recorded in the release commit.
 - **Build System**:
   - Fixed ESP-IDF Component Manager dependency solver offline mode (`IDF_COMPONENT_CHECK_NEW_VERSION=0`) and added missing Kconfig dependency resolution symbols.
 
-## v1.3.37 / app 0.3.47 — 2026-11-05
+## [Fork] v1.3.37 / app 0.3.47 — 2026-11-05
 
 ### Adaptive Media Widget & Player Controls
 

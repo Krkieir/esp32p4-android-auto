@@ -94,7 +94,8 @@ static void load_from_nvs(void) {
     if (nvs_get_u16(h, "can_kbps",    &u16) == ESP_OK) s_cache.can_speed         = sanitize_can_speed(u16);
     if (nvs_get_u8 (h, "brightness",  &u8 ) == ESP_OK) s_cache.brightness        = u8;
     if (nvs_get_u8 (h, "ctrl_id",     &u8 ) == ESP_OK) s_cache.controller_id     = u8;
-    if (nvs_get_u8 (h, "batt_calc",   &u8 ) == ESP_OK) s_cache.battery_calc_mode = (battery_calc_mode_t)u8;
+    if (nvs_get_u8 (h, "batt_calc",   &u8 ) == ESP_OK && u8 <= BATTERY_CALC_MODE_BMS)
+        s_cache.battery_calc_mode = (battery_calc_mode_t)u8;
     if (nvs_get_u8 (h, "show_fps",    &u8 ) == ESP_OK) s_cache.show_fps          = (u8 != 0);
     if (nvs_get_u8 (h, "vesc_sim",    &u8 ) == ESP_OK) s_cache.vesc_emulator     = (u8 != 0);
     if (nvs_get_u8 (h, "link_ble",    &u8 ) == ESP_OK) s_cache.vesc_link_ble     = (u8 != 0);
@@ -171,7 +172,7 @@ void settings_init(void) {
      * adapter in front of it. Guessing wrong costs a dashboard that connects
      * and then shows nothing, which is exactly what a default should not do. */
     s_cache.vesc_ble_route    = VESC_BLE_ROUTE_AUTO;
-    s_cache.aa_autoconnect    = true;
+    s_cache.aa_autoconnect    = false;
     s_cache.use_imperial      = false;
     s_cache.use_fahrenheit    = false;
     s_cache.second_head_enabled = false;
