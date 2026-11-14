@@ -228,53 +228,86 @@ static void apply_layout(bool is_video, bool force)
             lv_obj_set_style_border_color(s_card, lv_color_hex(0x0c1c1e), 0);
         }
 
-        /* Cover square on the LEFT */
-        if (s_art_box) {
-            lv_obj_set_size(s_art_box, art_size, art_size);
-            lv_obj_align(s_art_box, LV_ALIGN_LEFT_MID, pad_h, 0);
-            lv_obj_set_style_radius(s_art_box, art_rad, 0);
-            lv_obj_clear_flag(s_art_box, LV_OBJ_FLAG_HIDDEN);
-        }
-
-        /* Available width for the RIGHT column */
-        lv_coord_t gap_x = (s_tile_w < 280) ? ((s_tile_h < 100) ? 8 : 10) : 14;
-        lv_coord_t left_pad = pad_h + art_size + gap_x;
-        lv_coord_t right_w  = s_tile_w - left_pad - pad_h;
-        if (right_w < 100) right_w = 100;
-
-        lv_coord_t title_y, artist_y, btn_y;
-        if (s_tile_h < 100) {
-            title_y  = 3;
-            artist_y = 25;
-            btn_y    = 50;
-        } else if (s_tile_h < 120) {
-            title_y  = 6;
-            artist_y = 30;
-            btn_y    = 60;
+        if (s_tile_w < 200) {
+            /* Ultra-compact card (Twin Arc, 152×92):
+             * Top row: 34×34 art square on left + title/artist on right.
+             * Bottom row: centered Prev, Play, Next buttons. */
+            lv_coord_t mini_art = 34;
+            if (s_art_box) {
+                lv_obj_set_size(s_art_box, mini_art, mini_art);
+                lv_obj_align(s_art_box, LV_ALIGN_TOP_LEFT, 6, 6);
+                lv_obj_set_style_radius(s_art_box, 6, 0);
+                lv_obj_clear_flag(s_art_box, LV_OBJ_FLAG_HIDDEN);
+            }
+            lv_coord_t text_x = 6 + mini_art + 6;
+            lv_coord_t text_w = s_tile_w - text_x - 6;
+            if (s_title_lbl) {
+                lv_obj_set_width(s_title_lbl, text_w);
+                lv_obj_align(s_title_lbl, LV_ALIGN_TOP_LEFT, text_x, 4);
+                lv_obj_set_style_text_align(s_title_lbl, LV_TEXT_ALIGN_LEFT, 0);
+                lv_obj_move_foreground(s_title_lbl);
+            }
+            if (s_artist_lbl) {
+                lv_obj_set_width(s_artist_lbl, text_w);
+                lv_obj_align(s_artist_lbl, LV_ALIGN_TOP_LEFT, text_x, 22);
+                lv_obj_set_style_text_align(s_artist_lbl, LV_TEXT_ALIGN_LEFT, 0);
+                lv_obj_move_foreground(s_artist_lbl);
+            }
+            if (s_btn_row) {
+                lv_obj_set_width(s_btn_row, s_tile_w - 12);
+                lv_obj_align(s_btn_row, LV_ALIGN_BOTTOM_MID, 0, -4);
+                lv_obj_clear_flag(s_btn_row, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_move_foreground(s_btn_row);
+            }
         } else {
-            title_y  = 6;
-            artist_y = 32;
-            btn_y    = 72;
-        }
+            /* Cover square on the LEFT */
+            if (s_art_box) {
+                lv_obj_set_size(s_art_box, art_size, art_size);
+                lv_obj_align(s_art_box, LV_ALIGN_LEFT_MID, pad_h, 0);
+                lv_obj_set_style_radius(s_art_box, art_rad, 0);
+                lv_obj_clear_flag(s_art_box, LV_OBJ_FLAG_HIDDEN);
+            }
 
-        if (s_title_lbl) {
-            lv_obj_set_width(s_title_lbl, right_w);
-            lv_obj_align(s_title_lbl, LV_ALIGN_TOP_LEFT, left_pad, title_y);
-            lv_obj_set_style_text_align(s_title_lbl, LV_TEXT_ALIGN_LEFT, 0);
-            lv_obj_move_foreground(s_title_lbl);
-        }
-        if (s_artist_lbl) {
-            lv_obj_set_width(s_artist_lbl, right_w);
-            lv_obj_align(s_artist_lbl, LV_ALIGN_TOP_LEFT, left_pad, artist_y);
-            lv_obj_set_style_text_align(s_artist_lbl, LV_TEXT_ALIGN_LEFT, 0);
-            lv_obj_move_foreground(s_artist_lbl);
-        }
+            /* Available width for the RIGHT column */
+            lv_coord_t gap_x = (s_tile_w < 280) ? ((s_tile_h < 100) ? 8 : 10) : 14;
+            lv_coord_t left_pad = pad_h + art_size + gap_x;
+            lv_coord_t right_w  = s_tile_w - left_pad - pad_h;
+            if (right_w < 100) right_w = 100;
 
-        if (s_btn_row) {
-            lv_obj_set_width(s_btn_row, right_w);
-            lv_obj_align(s_btn_row, LV_ALIGN_TOP_LEFT, left_pad, btn_y);
-            lv_obj_clear_flag(s_btn_row, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_move_foreground(s_btn_row);
+            lv_coord_t title_y, artist_y, btn_y;
+            if (s_tile_h < 100) {
+                title_y  = 3;
+                artist_y = 25;
+                btn_y    = 50;
+            } else if (s_tile_h < 120) {
+                title_y  = 6;
+                artist_y = 30;
+                btn_y    = 60;
+            } else {
+                title_y  = 6;
+                artist_y = 32;
+                btn_y    = 72;
+            }
+
+            if (s_title_lbl) {
+                lv_obj_set_width(s_title_lbl, right_w);
+                lv_obj_align(s_title_lbl, LV_ALIGN_TOP_LEFT, left_pad, title_y);
+                lv_obj_set_style_text_align(s_title_lbl, LV_TEXT_ALIGN_LEFT, 0);
+                lv_obj_move_foreground(s_title_lbl);
+            }
+            if (s_artist_lbl) {
+                lv_obj_set_width(s_artist_lbl, right_w);
+                lv_obj_align(s_artist_lbl, LV_ALIGN_TOP_LEFT, left_pad, artist_y);
+                lv_obj_set_style_text_align(s_artist_lbl, LV_TEXT_ALIGN_LEFT, 0);
+                lv_obj_move_foreground(s_artist_lbl);
+            }
+
+            if (s_btn_row) {
+                lv_obj_set_width(s_btn_row, right_w);
+                lv_obj_align(s_btn_row, LV_ALIGN_TOP_LEFT, left_pad, btn_y);
+                lv_obj_clear_flag(s_btn_row, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_move_foreground(s_btn_row);
+            }
         }
     }
 }
@@ -573,15 +606,16 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
     lv_obj_center(s_art_glyph);
 
     /* Text labels */
+    const lv_font_t *lbl_font = (s_tile_h < 100 || s_tile_w < 200) ? &lv_font_montserratMedium_16 : &aabridge_font_24;
     s_title_lbl = lv_label_create(s_card);
     lv_obj_set_style_text_color(s_title_lbl, lv_color_white(), 0);
-    lv_obj_set_style_text_font(s_title_lbl, &aabridge_font_24, 0);
+    lv_obj_set_style_text_font(s_title_lbl, lbl_font, 0);
     lv_label_set_long_mode(s_title_lbl, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_label_set_text(s_title_lbl, "—");
 
     s_artist_lbl = lv_label_create(s_card);
     lv_obj_set_style_text_color(s_artist_lbl, lv_color_hex(0x8ca0a2), 0);
-    lv_obj_set_style_text_font(s_artist_lbl, &aabridge_font_24, 0);
+    lv_obj_set_style_text_font(s_artist_lbl, lbl_font, 0);
     lv_label_set_long_mode(s_artist_lbl, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_label_set_text(s_artist_lbl, "");
 
@@ -590,7 +624,7 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
     lv_coord_t btn_gap, side_w, play_w, play_h;
     const lv_font_t *btn_font;
     if (s_tile_h < 100) {
-        btn_gap   = 10;
+        btn_gap   = (s_tile_w < 200) ? 6 : 10;
         side_w    = 24;
         play_w    = 30;
         play_h    = 30;
