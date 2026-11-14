@@ -9,6 +9,24 @@ changes.
 Entries below name the firmware version; the app version of the same release is
 the one recorded in the release commit.
 
+## v1.3.43 / app 0.3.52 — 2026-11-14
+
+### Full Sync with Upstream v1.3.42 + Universal Media Player Widget
+
+- **Upstream v1.3.42 Integration**:
+  - JK-BMS support over BLE with dedicated battery pack monitor screen.
+  - New Twin Arc HMI dashboard (dual 270° rings for speed & power) and Cyberpunk Amber dashboard (DSEG7).
+  - Android Auto auto-connect disabled by default.
+  - Comprehensive bilingual UI documentation.
+- **Universal Interactive Media Player Widget**:
+  - Transport buttons: Previous, Play/Pause (with lime accent), and Next capsule buttons across all dashboard themes.
+  - **Twin Arc (152×92)**: Custom stacked ultra-compact layout featuring a 34×34 album art preview, circular scrolling track/artist text, and centered transport controls.
+  - **Cockpit Max**: Full dynamic `lv_tileview` mounting for both 800×480 and 480×480 screen geometries.
+  - **Cyberpunk Amber & Classic Cockpit**: Full-size side-by-side card layout with centered 1:1 artwork.
+  - Video preview mode (16:9, e.g. YouTube) with dark readability overlay.
+- **Companion App & OTA**:
+  - Bundled updated firmware images for all 4 boards (`waveshare`, `waveshare-rev3`, `jc4880`, `s3touch4`) into `aa_bridge-0.3.52.apk` for seamless one-click OTA upgrade.
+
 ## v1.3.42 / app 0.3.51 — 2026-11-13
 
 Bug-fix release. Two behaviour fixes on top of 1.3.41; no new screens.
