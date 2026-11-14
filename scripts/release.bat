@@ -27,8 +27,12 @@ if %errorlevel% neq 0 (
 )
 where flutter >nul 2>nul
 if %errorlevel% neq 0 (
-    echo release: flutter not found in PATH 1>&2
-    exit /b 1
+    if exist "D:\flutter\bin\flutter.bat" (
+        set "PATH=D:\flutter\bin;!PATH!"
+    ) else (
+        echo release: flutter not found in PATH 1>&2
+        exit /b 1
+    )
 )
 
 set NEW_FW=%1
@@ -40,7 +44,7 @@ if %errorlevel% neq 0 exit /b 1
 
 if exist .release_tmp.txt (
     for /f "tokens=*" %%i in (.release_tmp.txt) do (
-        if not defined FW_VER ( set FW_VER=%%i ) else ( set APP_VER=%%i )
+        if not defined FW_VER ( set "FW_VER=%%i" ) else ( set "APP_VER=%%i" )
     )
     del .release_tmp.txt
 )

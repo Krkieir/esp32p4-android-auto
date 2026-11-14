@@ -50,6 +50,16 @@ if %USE_KEY%==1 (
     echo build_app: no embedded key (the app asks the user for one)
 )
 
+where flutter >nul 2>nul
+if %errorlevel% neq 0 (
+    if exist "D:\flutter\bin\flutter.bat" (
+        set "PATH=D:\flutter\bin;!PATH!"
+    ) else (
+        echo build_app: flutter not found in PATH 1>&2
+        exit /b 1
+    )
+)
+
 cd /d "%APP%"
 call flutter pub get
 if %errorlevel% neq 0 exit /b 1

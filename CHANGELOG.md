@@ -9,6 +9,20 @@ changes.
 Entries below name the firmware version; the app version of the same release is
 the one recorded in the release commit.
 
+## v1.3.38 / app 0.3.48 — 2026-11-14
+
+### Media Widget in Cockpit Max & Adaptive Scaling
+
+- **Cockpit Max Media Player Support**:
+  - Integrated the media playback widget into the Cockpit Max (`dashboard_Classic_Max`) dashboard theme between the speed readout and the max statistics row (`P MAX / V MAX / RESET`).
+  - Supports both 800×480 (`waveshare`, `waveshare-rev3`, `jc4880`) and 480×480 (`s3touch4`) resolutions.
+- **Dynamic Tile Scaling**:
+  - Automatically scales album art square, corner radiuses, and transport controls based on available tile dimensions.
+  - Compact button sizes (height 30 / 34 / 42 px) and fonts (`montserratMedium_16` for compact heights, `montserratMedium_20` for standard) ensure no overlap with speed or reset buttons.
+  - Video preview mode (16:9) dynamically fills card width with centered content.
+- **Build System**:
+  - Fixed ESP-IDF Component Manager dependency solver offline mode (`IDF_COMPONENT_CHECK_NEW_VERSION=0`) and added missing Kconfig dependency resolution symbols.
+
 ## v1.3.37 / app 0.3.47 — 2026-11-05
 
 ### Adaptive Media Widget & Player Controls

@@ -32,6 +32,7 @@
 #include "fonts/aabridge_fonts.h"
 
 LV_FONT_DECLARE(lv_font_montserratMedium_20);
+LV_FONT_DECLARE(lv_font_montserratMedium_16);
 
 static const char *TAG = "music_info_view";
 
@@ -154,9 +155,17 @@ static void apply_layout(bool is_video, bool force)
     if (!force && s_current_layout == mode) return;
     s_current_layout = mode;
 
-    lv_coord_t art_size = s_tile_h - 16;
-    if (art_size > 120) art_size = 120;
-    if (s_tile_w < 280) art_size = 96;
+    lv_coord_t pad_v = (s_tile_h < 100) ? 5 : ((s_tile_h < 120) ? 6 : 8);
+    lv_coord_t pad_h = (s_tile_w < 280) ? 6 : 8;
+    lv_coord_t max_art = s_tile_h - 2 * pad_v;
+    if (max_art > 120) max_art = 120;
+
+    lv_coord_t art_size = max_art;
+    if (s_tile_w < 280) {
+        lv_coord_t narrow_cap = (s_tile_h < 100) ? 76 : 96;
+        if (art_size > narrow_cap) art_size = narrow_cap;
+    }
+    lv_coord_t art_rad = (art_size >= 110) ? 14 : ((art_size >= 85) ? 10 : 8);
 
     if (is_video) {
         /* Video Mode (16:9, e.g. YouTube):
@@ -178,15 +187,29 @@ static void apply_layout(bool is_video, bool force)
             lv_obj_clear_flag(s_overlay, LV_OBJ_FLAG_HIDDEN);
         }
 
+        lv_coord_t v_pad_h = (s_tile_w < 280) ? 14 : 28;
+        lv_coord_t lbl_w = s_tile_w - v_pad_h;
+        lv_coord_t title_bot_y, artist_bot_y;
+        if (s_tile_h < 100) {
+            title_bot_y  = -22;
+            artist_bot_y = -2;
+        } else if (s_tile_h < 120) {
+            title_bot_y  = -25;
+            artist_bot_y = -3;
+        } else {
+            title_bot_y  = -28;
+            artist_bot_y = -4;
+        }
+
         if (s_title_lbl) {
-            lv_obj_set_width(s_title_lbl, s_tile_w - 28);
-            lv_obj_align(s_title_lbl, LV_ALIGN_BOTTOM_MID, 0, -28);
+            lv_obj_set_width(s_title_lbl, lbl_w);
+            lv_obj_align(s_title_lbl, LV_ALIGN_BOTTOM_MID, 0, title_bot_y);
             lv_obj_set_style_text_align(s_title_lbl, LV_TEXT_ALIGN_LEFT, 0);
             lv_obj_move_foreground(s_title_lbl);
         }
         if (s_artist_lbl) {
-            lv_obj_set_width(s_artist_lbl, s_tile_w - 28);
-            lv_obj_align(s_artist_lbl, LV_ALIGN_BOTTOM_MID, 0, -4);
+            lv_obj_set_width(s_artist_lbl, lbl_w);
+            lv_obj_align(s_artist_lbl, LV_ALIGN_BOTTOM_MID, 0, artist_bot_y);
             lv_obj_set_style_text_align(s_artist_lbl, LV_TEXT_ALIGN_LEFT, 0);
             lv_obj_move_foreground(s_artist_lbl);
         }
@@ -208,30 +231,46 @@ static void apply_layout(bool is_video, bool force)
         /* Cover square on the LEFT */
         if (s_art_box) {
             lv_obj_set_size(s_art_box, art_size, art_size);
-            lv_obj_align(s_art_box, LV_ALIGN_LEFT_MID, 8, 0);
+            lv_obj_align(s_art_box, LV_ALIGN_LEFT_MID, pad_h, 0);
+            lv_obj_set_style_radius(s_art_box, art_rad, 0);
             lv_obj_clear_flag(s_art_box, LV_OBJ_FLAG_HIDDEN);
         }
 
         /* Available width for the RIGHT column */
-        lv_coord_t left_pad = 8 + art_size + 14;
-        lv_coord_t right_w  = s_tile_w - left_pad - 8;
+        lv_coord_t gap_x = (s_tile_w < 280) ? ((s_tile_h < 100) ? 8 : 10) : 14;
+        lv_coord_t left_pad = pad_h + art_size + gap_x;
+        lv_coord_t right_w  = s_tile_w - left_pad - pad_h;
         if (right_w < 100) right_w = 100;
+
+        lv_coord_t title_y, artist_y, btn_y;
+        if (s_tile_h < 100) {
+            title_y  = 3;
+            artist_y = 25;
+            btn_y    = 50;
+        } else if (s_tile_h < 120) {
+            title_y  = 6;
+            artist_y = 30;
+            btn_y    = 60;
+        } else {
+            title_y  = 6;
+            artist_y = 32;
+            btn_y    = 72;
+        }
 
         if (s_title_lbl) {
             lv_obj_set_width(s_title_lbl, right_w);
-            lv_obj_align(s_title_lbl, LV_ALIGN_TOP_LEFT, left_pad, 6);
+            lv_obj_align(s_title_lbl, LV_ALIGN_TOP_LEFT, left_pad, title_y);
             lv_obj_set_style_text_align(s_title_lbl, LV_TEXT_ALIGN_LEFT, 0);
             lv_obj_move_foreground(s_title_lbl);
         }
         if (s_artist_lbl) {
             lv_obj_set_width(s_artist_lbl, right_w);
-            lv_obj_align(s_artist_lbl, LV_ALIGN_TOP_LEFT, left_pad, 32);
+            lv_obj_align(s_artist_lbl, LV_ALIGN_TOP_LEFT, left_pad, artist_y);
             lv_obj_set_style_text_align(s_artist_lbl, LV_TEXT_ALIGN_LEFT, 0);
             lv_obj_move_foreground(s_artist_lbl);
         }
 
         if (s_btn_row) {
-            lv_coord_t btn_y = (s_tile_h < 120) ? 60 : 72;
             lv_obj_set_width(s_btn_row, right_w);
             lv_obj_align(s_btn_row, LV_ALIGN_TOP_LEFT, left_pad, btn_y);
             lv_obj_clear_flag(s_btn_row, LV_OBJ_FLAG_HIDDEN);
@@ -293,9 +332,15 @@ static void apply_art(uint32_t hash)
         bool is_video = is_video_mode();
         apply_layout(is_video, true);
 
-        lv_coord_t art_size = s_tile_h - 16;
-        if (art_size > 120) art_size = 120;
-        if (s_tile_w < 280) art_size = 96;
+        lv_coord_t pad_v = (s_tile_h < 100) ? 5 : ((s_tile_h < 120) ? 6 : 8);
+        lv_coord_t max_art = s_tile_h - 2 * pad_v;
+        if (max_art > 120) max_art = 120;
+
+        lv_coord_t art_size = max_art;
+        if (s_tile_w < 280) {
+            lv_coord_t narrow_cap = (s_tile_h < 100) ? 76 : 96;
+            if (art_size > narrow_cap) art_size = narrow_cap;
+        }
 
         if (s_art_img && s_art_w > 0 && s_art_h > 0) {
             lv_img_set_src(s_art_img, &s_art_dsc);
@@ -340,7 +385,7 @@ static void set_container_visible(bool on)
 {
     if (!s_root) return;
     lv_obj_t *container = lv_obj_get_parent(s_root);
-    if (!container) return;
+    if (!container || container == lv_scr_act()) return;
     if (on) lv_obj_clear_flag(container, LV_OBJ_FLAG_HIDDEN);
     else    lv_obj_add_flag (container, LV_OBJ_FLAG_HIDDEN);
 }
@@ -441,6 +486,19 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
     lv_obj_set_style_outline_width(s_root, 0, LV_PART_MAIN);
     lv_obj_set_style_radius(s_root, 0, LV_PART_MAIN);
 
+    lv_coord_t pad_v = (s_tile_h < 100) ? 5 : ((s_tile_h < 120) ? 6 : 8);
+    lv_coord_t pad_h = (s_tile_w < 280) ? 6 : 8;
+    lv_coord_t max_art = s_tile_h - 2 * pad_v;
+    if (max_art > 120) max_art = 120;
+
+    lv_coord_t art_size = max_art;
+    if (s_tile_w < 280) {
+        lv_coord_t narrow_cap = (s_tile_h < 100) ? 76 : 96;
+        if (art_size > narrow_cap) art_size = narrow_cap;
+    }
+    lv_coord_t art_rad = (art_size >= 110) ? 14 : ((art_size >= 85) ? 10 : 8);
+    lv_coord_t card_rad = (s_tile_h < 110) ? 14 : 18;
+
     /* Centered card container */
     s_card = lv_obj_create(s_root);
     lv_obj_set_size(s_card, s_tile_w, s_tile_h);
@@ -449,17 +507,15 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
     lv_obj_set_style_bg_opa(s_card, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_card, 1, 0);
     lv_obj_set_style_border_color(s_card, lv_color_hex(0x0c1c1e), 0);
-    lv_obj_set_style_radius(s_card, 18, 0);
+    lv_obj_set_style_radius(s_card, card_rad, 0);
     lv_obj_set_style_clip_corner(s_card, true, 0);
     lv_obj_set_style_pad_all(s_card, 0, 0);
     lv_obj_clear_flag(s_card, LV_OBJ_FLAG_SCROLLABLE);
 
     /* Video art image (fills entire card in video mode) */
     s_video_art_img = lv_img_create(s_card);
-    lv_obj_set_size(s_video_art_img, s_tile_w, s_tile_h);
-    lv_obj_align(s_video_art_img, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_radius(s_video_art_img, 18, 0);
-    lv_obj_set_style_clip_corner(s_video_art_img, true, 0);
+    lv_obj_set_size(s_video_art_img, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_center(s_video_art_img);
     lv_obj_add_flag(s_video_art_img, LV_OBJ_FLAG_HIDDEN);
 
     /* Readability overlay (video mode only) */
@@ -469,7 +525,7 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
     lv_obj_set_style_bg_color(s_overlay, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(s_overlay, LV_OPA_30, 0);
     lv_obj_set_style_border_width(s_overlay, 0, 0);
-    lv_obj_set_style_radius(s_overlay, 18, 0);
+    lv_obj_set_style_radius(s_overlay, card_rad, 0);
     lv_obj_set_style_clip_corner(s_overlay, true, 0);
     lv_obj_set_style_pad_all(s_overlay, 0, 0);
     lv_obj_clear_flag(s_overlay, LV_OBJ_FLAG_SCROLLABLE);
@@ -482,17 +538,13 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
     lv_obj_add_flag(s_overlay, LV_OBJ_FLAG_HIDDEN);
 
     /* Square art container on left (music mode) */
-    lv_coord_t art_size = s_tile_h - 16;
-    if (art_size > 120) art_size = 120;
-    if (s_tile_w < 280) art_size = 96;
-
     s_art_box = lv_obj_create(s_card);
     lv_obj_set_size(s_art_box, art_size, art_size);
-    lv_obj_align(s_art_box, LV_ALIGN_LEFT_MID, 8, 0);
+    lv_obj_align(s_art_box, LV_ALIGN_LEFT_MID, pad_h, 0);
     lv_obj_set_style_bg_color(s_art_box, lv_color_hex(0x071516), 0);
     lv_obj_set_style_border_width(s_art_box, 1, 0);
     lv_obj_set_style_border_color(s_art_box, lv_color_hex(0x10282a), 0);
-    lv_obj_set_style_radius(s_art_box, 14, 0);
+    lv_obj_set_style_radius(s_art_box, art_rad, 0);
     lv_obj_set_style_clip_corner(s_art_box, true, 0);
     lv_obj_set_style_pad_all(s_art_box, 0, 0);
     lv_obj_clear_flag(s_art_box, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
@@ -506,7 +558,7 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
     /* Fallback audio glyph (inside square box) */
     s_art_glyph = lv_label_create(s_art_box);
     lv_obj_set_style_text_color(s_art_glyph, lv_color_hex(0xb5ff00), 0);
-    lv_obj_set_style_text_font(s_art_glyph, &lv_font_montserratMedium_20, 0);
+    lv_obj_set_style_text_font(s_art_glyph, (art_size < 80) ? &lv_font_montserratMedium_16 : &lv_font_montserratMedium_20, 0);
     lv_label_set_text(s_art_glyph, LV_SYMBOL_AUDIO);
     lv_obj_center(s_art_glyph);
 
@@ -525,10 +577,27 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
 
     /* Transport button row */
     s_btn_row = lv_obj_create(s_card);
-    lv_coord_t btn_gap    = (s_tile_w < 280) ? 14 : 20;
-    lv_coord_t side_w     = (s_tile_w < 280) ? 30 : 36;
-    lv_coord_t play_w     = (s_tile_w < 280) ? 36 : 42;
-    lv_coord_t play_h     = (s_tile_w < 280) ? 36 : 42;
+    lv_coord_t btn_gap, side_w, play_w, play_h;
+    const lv_font_t *btn_font;
+    if (s_tile_h < 100) {
+        btn_gap   = 10;
+        side_w    = 24;
+        play_w    = 30;
+        play_h    = 30;
+        btn_font  = &lv_font_montserratMedium_16;
+    } else if (s_tile_h < 120) {
+        btn_gap   = 14;
+        side_w    = 28;
+        play_w    = 34;
+        play_h    = 34;
+        btn_font  = &lv_font_montserratMedium_20;
+    } else {
+        btn_gap   = (s_tile_w < 280) ? 14 : 20;
+        side_w    = (s_tile_w < 280) ? 30 : 36;
+        play_w    = (s_tile_w < 280) ? 36 : 42;
+        play_h    = (s_tile_w < 280) ? 36 : 42;
+        btn_font  = &lv_font_montserratMedium_20;
+    }
 
     lv_obj_set_height(s_btn_row, play_h + 4);
     lv_obj_set_style_bg_opa(s_btn_row, LV_OPA_TRANSP, 0);
@@ -555,7 +624,7 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
     lv_obj_t *lbl_prev = lv_label_create(s_btn_prev);
     lv_obj_set_style_text_color(lbl_prev, lv_color_hex(0x8ca0a2), 0);
     lv_obj_set_style_text_color(lbl_prev, lv_color_hex(0xb5ff00), LV_STATE_PRESSED);
-    lv_obj_set_style_text_font(lbl_prev, &lv_font_montserratMedium_20, 0);
+    lv_obj_set_style_text_font(lbl_prev, btn_font, 0);
     lv_label_set_text(lbl_prev, LV_SYMBOL_PREV);
     lv_obj_center(lbl_prev);
 
@@ -568,14 +637,14 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
     lv_obj_set_style_border_width(s_btn_play, 2, 0);
     lv_obj_set_style_border_color(s_btn_play, lv_color_hex(0xb5ff00), 0);
     lv_obj_set_style_border_opa(s_btn_play, LV_OPA_COVER, 0);
-    lv_obj_set_style_radius(s_btn_play, 9, 0);
+    lv_obj_set_style_radius(s_btn_play, (play_h < 34) ? 7 : 9, 0);
     lv_obj_set_style_shadow_width(s_btn_play, 0, 0);
     lv_obj_set_style_pad_all(s_btn_play, 0, 0);
     lv_obj_add_event_cb(s_btn_play, btn_play_cb, LV_EVENT_CLICKED, NULL);
 
     s_lbl_play = lv_label_create(s_btn_play);
     lv_obj_set_style_text_color(s_lbl_play, lv_color_hex(0xb5ff00), 0);
-    lv_obj_set_style_text_font(s_lbl_play, &lv_font_montserratMedium_20, 0);
+    lv_obj_set_style_text_font(s_lbl_play, btn_font, 0);
     lv_label_set_text(s_lbl_play, LV_SYMBOL_PLAY);
     lv_obj_center(s_lbl_play);
 
@@ -594,7 +663,7 @@ esp_err_t music_info_view_attach(lv_obj_t *parent)
     lv_obj_t *lbl_next = lv_label_create(s_btn_next);
     lv_obj_set_style_text_color(lbl_next, lv_color_hex(0x8ca0a2), 0);
     lv_obj_set_style_text_color(lbl_next, lv_color_hex(0xb5ff00), LV_STATE_PRESSED);
-    lv_obj_set_style_text_font(lbl_next, &lv_font_montserratMedium_20, 0);
+    lv_obj_set_style_text_font(lbl_next, btn_font, 0);
     lv_label_set_text(lbl_next, LV_SYMBOL_NEXT);
     lv_obj_center(lbl_next);
 
